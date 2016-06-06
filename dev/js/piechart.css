@@ -1,0 +1,36 @@
+.arc text {
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
+
+.arc path {
+  stroke: #fff;
+  display: inline-block;
+  stroke-width: 20;
+}
+
+.arc{
+  display: inline-block;
+  stroke: #fff;
+  stroke-width: 20;
+}
+
+.path{
+  stroke: white;
+  stroke-width: 6; 
+}
+
+.css-label-class {
+  font-family: "Open Sans";
+  font-weight: 100;
+  font-size: 14px;
+  color: #C04000;
+}
+
+div.splunk-message-container {
+  display: none;
+}
+
+.chart {
+  display: inline-block;
+}
