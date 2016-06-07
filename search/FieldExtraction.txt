@@ -1,0 +1,66 @@
+# created by: Xiaoyuan Li
+
+    Docs
+    Indexing time extraction
+        inputs.conf
+        props.conf
+        transforms.conf
+        fields.conf
+    Search time extraction
+    Run field extractor from UI
+        Where is the field extraction data saved
+
+
+1. Docs
+
+http://docs.splunk.com/Documentation/Splunk/6.2.4/Data/Configureindex-timefieldextraction
+
+
+2. Indexing time extraction
+
+See https://jira.splunk.com/browse/SPL-60142 as an example.
+
+2.1 inputs.conf
+ 
+[monitor://$SPLUNK_HOME\etc\apps\issue_app\sample_log]
+disabled = false
+followTail = 0
+host_segment = 1
+sourcetype = test_log
+
+2.2 props.conf
+ 
+[test_log]
+TRANSFORMS-carId = carId_extract      // TRANSFORMS defines the index time extraction.
+
+2.3 transforms.conf
+
+[carId_extract]
+REGEX =^\d\{2\}(?<carId>\S\{8\})
+FORMAT = carId::"$1"
+
+2.4 fields.conf
+
+[carId]
+INDEXED = true     // indexing into tsidx
+
+ 
+3. Search time extraction
+
+See http://docs.splunk.com/Documentation/Splunk/6.2.0/SearchReference/extract
+
+Field will be extracted during search time.
+
+For example:  ... | extract pairdelim="|;", kvdelim="=:"
+
+ 
+4. Run field extractor from UI
+
+http://docs.splunk.com/Documentation/Splunk/6.2.0/Knowledge/ExtractfieldsinteractivelywithIFX
+
+On search page, click 'Extract New Fields'
+Follow the UI to use regex or delim char to extract fields and name them.
+
+Where is the field extraction data saved:
+etc/users/admin/search/local/props.conf
+etc/users/admin/search/local/transforms.conf

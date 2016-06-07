@@ -1,0 +1,202 @@
+# created by: Xiaoyuan Li
+
+    Must have "event" field
+        Failed JSON Data
+        This Works
+    JSON Test with Python
+    Script
+
+1. Must have "event" field
+
+1.1 Failed JSON Data
+
+xli@re-latitude:~/vagrant/centos$ curl -s -X POST -H 'Authorization: Splunk 90E68F68-9EAF-6E65-9F88-361F65F265C1' -H 'Content-Type: application/json' -d '{"sourcetype": "curlcmd", "source": "curlcmd", "host": "latitude", "msg": "Hello Splunk!"}' http://localhost:8088/services/collector/event -v
+* Hostname was NOT found in DNS cache
+*   Trying 127.0.0.1...
+* Connected to localhost (127.0.0.1) port 8088 (#0)
+> POST /services/collector/event HTTP/1.1
+> User-Agent: curl/7.35.0
+> Host: localhost:8088
+> Accept: */*
+> Authorization: Splunk 90E68F68-9EAF-6E65-9F88-361F65F265C1
+> Content-Type: application/json
+> Content-Length: 93
+>
+* upload completely sent off: 93 out of 93 bytes
+< HTTP/1.1 400 Bad Request
+< Date: Tue, 01 Sep 2015 23:47:18 GMT
+< Content-Type: application/json; charset=UTF-8
+< X-Content-Type-Options: nosniff
+< Content-Length: 27
+< Connection: Keep-Alive
+< X-Frame-Options: SAMEORIGIN
+* Server Splunkd is not blacklisted
+< Server: Splunkd
+<
+* Connection #0 to host localhost left intact
+{"text":"No data","code":5}
+
+xli@re-latitude:~/vagrant/centos
+
+1.2 This Works
+
+xli@latitude:~/vagrant/centos$ curl -s -X POST -H 'Authorization: Splunk 90E68F68-9EAF-6E65-9F88-361F65F265C1' -H 'Content-Type: application/json' -d '{"source "curlcmd", "host": "re-latitude", "event": "Hello Splunk!"}' http://latitude.work.com:8088/services/collector/event -v
+* Hostname was NOT found in DNS cache
+*   Trying 10.13.6.72...
+* Connected to latitude.work.com (10.13.6.72) port 8088 (#0)
+> POST /services/collector/event HTTP/1.1
+> User-Agent: curl/7.35.0
+> Host: re-latitude.sv.splunk.com:8088
+> Accept: */*
+> Authorization: Splunk 90E68F68-9EAF-6E65-9F88-361F65F265C1
+> Content-Type: application/json
+> Content-Length: 95
+>
+* upload completely sent off: 95 out of 95 bytes
+< HTTP/1.1 200 OK
+< Date: Wed, 02 Sep 2015 00:12:23 GMT
+< Content-Type: application/json; charset=UTF-8
+< X-Content-Type-Options: nosniff
+< Content-Length: 27
+< Connection: Keep-Alive
+< X-Frame-Options: SAMEORIGIN
+* Server Splunkd is not blacklisted
+< Server: Splunkd
+<
+* Connection #0 to host re-latitude.sv.splunk.com left intact
+{"text":"Success","code":0}
+
+
+2. JSON Test with Python
+
+xli@latitude:~/vagrant/centos$ python
+
+Python 2.7.6 (default, Jun 22 2015, 17:58:13)
+
+[GCC 4.8.2] on linux2
+
+Type "help", "copyright", "credits" or "license" for more information.
+
+>>> import json
+
+>>> json.load( '{"sourcetype": "curlcmd", "source": "curlcmd", "host": "re-latitude", "msg": "Hello Splunk!"}' )
+
+Traceback (most recent call last):
+
+  File "<stdin>", line 1, in <module>
+
+  File "/usr/lib/python2.7/json/__init__.py", line 286, in load
+
+    return loads(fp.read(),
+
+AttributeError: 'str' object has no attribute 'read'
+
+>>> json.loads( '{"sourcetype": "curlcmd", "source": "curlcmd", "host": "re-latitude", "msg": "Hello Splunk!"}' )
+
+{u'msg': u'Hello Splunk!', u'source': u'curlcmd', u'host': u're-latitude', u'sourcetype': u'curlcmd'}
+
+>>> exit()
+
+
+3. Script
+
+import groovy.json.JsonSlurper
+import java.text.SimpleDateFormat
+
+def send2Splunk(jsonData) {  
+
+      target_url = "http://host.work.com:29088/services/collector/event"
+
+      manager.listener.logger.println "target_url is: ${target_url}"
+
+      cmd = ["sh", "-c" ,"curl -s -X POST -H 'Authorization: Splunk 90E68F68-9EAF-6E65-9F88-361F65F265C1' -H 'Content-Type: application/json' -d '"+jsonData+"' "+ target_url]
+
+      manager.listener.logger.println "executing curl command: ${cmd}"
+
+      processBuilder=new ProcessBuilder(cmd)
+
+      processBuilder.redirectErrorStream(true)
+
+      process = processBuilder.start()   process.inputStream.eachLine {manager.listener.logger.println it}
+
+      process.waitFor()
+
+      manager.listener.logger.println "curl exit value: ${process.exitValue()}"
+
+}
+
+manager.listener.logger.println "Starting Post build Splunk connection"
+
+project = manager.build.project
+
+duration = manager.build.getExecutor().getElapsedTime()
+
+result = manager.build.getResult()
+
+build_url =  manager.envVars["BUILD_URL"]
+
+build_uri = new URI(build_url)
+
+host = build_uri.getHost()
+
+build_url_fragments = build_url.split("/")
+
+jenkins_url= manager.envVars["JENKINS_URL"]
+
+sha =  manager.envVars["GIT_COMMIT"]
+
+platform =  manager.envVars["PLAT"]
+
+platform = platform+"64"
+
+nodeName = manager.envVars["NODE_NAME"]
+
+(folder_name, job_name) = manager.envVars["JOB_NAME"].split("/")
+
+folder_parts = folder_name.split("_")
+
+try {
+
+        branch = folder_parts[1]+"/"+folder_parts[2]
+}
+
+catch (e) {
+        branch = folder_parts[1]
+}
+
+num_tests= 0
+num_tests_passed= 0
+num_tests_failed= 0
+buildID= manager.envVars["BUILD_ID"]
+SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'_'HH-mm-ss");
+Date date = df.parse(buildID);
+long buildTime = date.getTime()/1000;
+List<String> log = manager.build.getLog(1000000)
+manager.listener.logger.println "found the log file"
+log.each() { line->
+
+// 100% tests passed, 0 tests failed out of 711
+
+        if ("${line}".find(/\d+% tests passed, \d+ tests failed out of \d+/)) {
+
+              manager.listener.logger.println "found the test results"
+
+              (percent, fail, total) = (line =~ /\d+/)
+
+              num_tests= total.toInteger()
+
+              num_tests_failed= fail.toInteger()
+
+              num_tests_passed= num_tests - num_tests_failed
+
+              manager.listener.logger.println "test results - passed: ${num_tests_passed}, failed: ${num_tests_failed}, total: ${num_tests}"    
+
+         }
+
+}
+
+jsonData = "{\"time\": ${buildTime}, \"sourcetype\": \"jenkins-ci\", \"source\": \"jenkins\", \"host\": \"${host}\" , \"event\": { \"startTime\": ${buildTime}, \"duration\":$duration, \"node\": \"${nodeName}\", \"build_url\": \"${build_url}\", \"branch\": \"${branch}\", \"sha\": \"${sha}\", \"platform\": \"${platform}\", \"job_name\": \"${job_name}\", \"result\": \"${result}\", \"num_tests\": $num_tests, \"num_tests_passed\": $num_tests_passed, \"num_tests_failed\": $num_tests_failed }}"
+
+manager.listener.logger.println "jsonData: ${jsonData}"
+
+send2Splunk(jsonData)

@@ -1,0 +1,1733 @@
+# created by: Xiaoyuan Li
+
+    Docs
+    Simple HTML Page
+        Auto refresh
+    Display Debug Info
+    Conditional Panel
+    Examples
+        RE System Overview Clone
+        Server View Clone
+        RE System Overview
+        Server View
+    Drilldown
+        Code
+        Example
+            Drilldown with 2 parameters
+            Drilldown to a dashboard
+                Initiating panel
+                Target dashboard
+        Disable Drilldown
+    Color Setting
+    Overlay
+
+1. Docs
+
+http://www.splunk.com/en_us/products/splunk-enterprise/features/visualizations.html
+
+
+2. Simple HTML Page
+
+2.1 Auto refresh
+Within <dashboard> or <form>, add refresh=seconds to make it auto refresh.
+
+
+3 Display Debug Info
+
+<form script="simple_xml_examples:showtokens.js">
+Then refresh the page.
+
+
+4. Conditional Panel
+
+https://answers.splunk.com/answers/218623/how-to-hide-panels-with-no-results-from-a-dashboar.html
+
+Note: the following example must have "as show" in the search tag value, because the only output will be values(show) but not show, then the condition will not be able to find this field.
+
+<panel depends="$showPanel$">
+<single>
+<search>
+    <query>index=resystem host=$host$ | head 1 | eval show=if(host=="releases.splunk.com", "Analyzing...", "Nothing") | stats values(show) as show</query>
+    <earliest>-15m</earliest>
+    <latest>now</latest>
+<preview>
+    <condition match="'result.show' == &quot;Analyzing...&quot;">
+        <set token="test1">MATCH $result.show$ $result.host$</set>
+        <set token="showPanel">true</set>
+    </condition>
+    <condition>
+        <set token="test1">NOMATCH $result.show$ $result.host$</set>
+        <unset token="showPanel"/>
+        <set token="show">$result.show$</set>
+    </condition>
+</preview>
+</search>
+<option name="colorBy">value</option>
+<option name="colorMode">none</option>
+<option name="numberPrecision">0</option>
+<option name="showSparkline">1</option>
+<option name="showTrendIndicator">1</option>
+<option name="trendColorInterpretation">standard</option>
+<option name="trendDisplayMode">absolute</option>
+<option name="useColors">0</option>
+<option name="useThousandSeparators">1</option>
+</single>
+</panel>
+
+
+5. Examples
+
+5.1 RE System Overview Clone
+
+<dashboard script="table_cell_highlighting.js" stylesheet="table_cell_highlighting.css">
+
+  <label>RE System Overview Clone</label>
+
+  <row>
+
+    <panel>
+
+      <table id="highlight">
+
+        <title>RE Servers</title>
+
+        <search>
+
+          <query>
+
+            index=resystem sourcetype="vmstat"
+
+            | append [search index=resystem sourcetype="appstat"]
+
+            | rename "total memory" as totalMemory, "used memory" as usedMemory, "free memory" as freeMemory, "total swap" as totalSwap, "used swap" as usedSwap, "free swap" as freeSwap, "swap cache" as swapCache
+
+            | eval usedMemPct=100*(usedMemory/totalMemory)
+
+            | stats values(Application) as Applications max(totalMemory) AS "Total Memory (MB)" max(usedMemory) AS "Used Memory (MB)" values(usedMemPct) AS "Used Memory (%)" values(freeMemory) AS "Free Memory (MB)" values(totalSwap) as "Total Swap (MB)" values(usedSwap) as "Used Swap (MB)" values(freeSwap) as "Free Swap" values(swapCache) as "Cached Swap (MB)" by host
+
+            | rename host as Host
+
+          </query>
+
+          <earliest>-10m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <drilldown target="New Window">
+
+          <link>/app/search/server_view_clone?form.host=$row.Host$&amp;form.app=$row.Applications$</link>
+
+        </drilldown>
+
+        <option name="wrap">true</option>
+
+        <option name="drilldown">row</option>
+
+        <option name="count">20</option>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <table>
+
+        <title>Unavailable Services</title>
+
+        <search>
+
+          <query>
+
+            index=resystem sourcetype="appstat" (State="T" OR State="Z" OR State="X")
+
+            | dedup Application
+
+            | eval time=strftime(_time, "%m/%d/%Y %I:%M:%S %p")
+
+            | stats values(State) AS State values(time) as Time by host, Application
+
+          </query>
+
+          <earliest>rt-10m</earliest>
+
+          <latest>rtnow</latest>
+
+        </search>
+
+        <drilldown target="New Window">
+
+          <link>/app/search/server_view?form.host=$row.host$</link>
+
+        </drilldown>
+
+        <option name="wrap">true</option>
+
+        <option name="rowNumbers">false</option>
+
+        <option name="dataOverlayMode">none</option>
+
+        <option name="drilldown">cell</option>
+
+        <option name="count">10</option>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <table>
+
+        <title>Highly Used Disk Volumes</title>
+
+        <search>
+
+          <query>
+
+            index=resystem sourcetype="diskstat"
+
+            | rename "Total 1K-blocks" as total_disk
+
+            | eval percent_used=100*(Used/total_disk)
+
+            | search percent_used &gt; 50.0
+
+            | stats values("Use%") AS "Percent Used" values(total_disk) AS "Total Volume (KB)" min(Available) as "Available Volume (KB)" values(Filesystem) as "File System" by host, "Mounted on"
+
+          </query>
+
+          <earliest>-10m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <drilldown target="New Window">
+
+          <link>/app/search/server_view?form.host=$row.host$</link>
+
+        </drilldown>
+
+        <option name="wrap">true</option>
+
+        <option name="rowNumbers">false</option>
+
+        <option name="dataOverlayMode">none</option>
+
+        <option name="drilldown">cell</option>
+
+        <option name="count">10</option>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+</dashboard>
+
+5.2 Server View Clone
+
+<form>
+
+  <label>Server View Clone</label>
+
+  <fieldset autoRun="true" submitButton="false">
+
+    <title>Host Name</title>
+
+    <input type="dropdown" token="host" searchWhenChanged="true">
+
+      <label>Host</label>
+
+      <search>
+
+        <query>
+
+         index=resystem sourcetype="appstat"
+
+         | stats count by host
+
+        </query>
+
+        <earliest>-7d@h</earliest>
+
+        <latest>now</latest>
+
+      </search>
+
+      <fieldForLabel>host</fieldForLabel>
+
+      <fieldForValue>host</fieldForValue>
+
+      <showClearButton>false</showClearButton>
+
+      <selectFirstChoice>true</selectFirstChoice>
+
+    </input>
+
+    <input type="dropdown" token="app" searchWhenChanged="true">
+
+      <label>Application</label>
+
+      <search>
+
+        <query>
+
+          index=resystem sourcetype="appstat"
+
+          | stats count by Application
+
+        </query>
+
+        <earliest>-7d@h</earliest>
+
+        <latest>now</latest>
+
+      </search>
+
+      <fieldForLabel>Application</fieldForLabel>
+
+      <fieldForValue>Application</fieldForValue>
+
+      <showClearButton>false</showClearButton>
+
+      <selectFirstChoice>true</selectFirstChoice>
+
+    </input>
+
+  </fieldset>
+
+  <row>
+
+    <panel>
+
+      <table>
+
+        <title>Application processes</title>
+
+        <search>
+
+          <query>
+
+            index=resystem host=$host$ sourcetype="appstat" Application=$app$
+
+            | stats values(Application) AS Application values(State) AS State values(MEM%) AS Mem% values(CPU%) AS CPU% values(Start) AS Start values(Time) AS "Cumulative CPU Time" values(RSS) AS "Resident Memory Size (KB)" values(VSZ) AS "Virtual Memory Size (KB)" values(Command) AS Command by PID
+
+          </query>
+
+          <earliest>rt-10m</earliest>
+
+          <latest>rtnow</latest>
+
+        </search>
+
+        <option name="wrap">true</option>
+
+        <option name="rowNumbers">false</option>
+
+        <option name="dataOverlayMode">none</option>
+
+        <option name="drilldown">cell</option>
+
+        <option name="count">10</option>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <chart>
+
+        <title>Application response time (ms) in past 5 days</title>
+
+        <search>
+
+          <query>
+
+            index=resystem sourcetype="perfstat" Service=$app$
+
+            | rename "Service" as "Application"
+
+            | timechart span=10m values(RespTime) by Application
+
+          </query>
+
+          <earliest>-5d</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+
+        <option name="charting.axisTitleX.visibility">visible</option>
+
+        <option name="charting.axisTitleY.visibility">visible</option>
+
+        <option name="charting.axisTitleY2.visibility">visible</option>
+
+        <option name="charting.axisX.scale">linear</option>
+
+        <option name="charting.axisY.scale">linear</option>
+
+        <option name="charting.axisY2.enabled">0</option>
+
+        <option name="charting.axisY2.scale">inherit</option>
+
+        <option name="charting.axisTitleX.text">Time</option>
+
+        <option name="charting.axisTitleY.text">Response Time (ms)</option>
+
+        <option name="charting.chart">line</option>
+
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+
+        <option name="charting.chart.bubbleSizeBy">area</option>
+
+        <option name="charting.chart.nullValueMode">connect</option>
+
+        <option name="charting.chart.showDataLabels">minmax</option>
+
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+
+        <option name="charting.chart.stackMode">default</option>
+
+        <option name="charting.chart.style">shiny</option>
+
+        <option name="charting.drilldown">all</option>
+
+        <option name="charting.layout.splitSeries">0</option>
+
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+
+        <option name="charting.legend.placement">right</option>
+
+      </chart>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <chart>
+
+        <title>Per application memory usages (%) in past 5 days</title>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="appstat" | bin _time span=10min | stats sum(MEM%) as mem by Application, _time | timechart span=10m max(mem) by Application</query>
+
+          <earliest>-5d</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+
+        <option name="charting.axisTitleX.visibility">visible</option>
+
+        <option name="charting.axisTitleY.visibility">visible</option>
+
+        <option name="charting.axisTitleY2.visibility">visible</option>
+
+        <option name="charting.axisX.scale">linear</option>
+
+        <option name="charting.axisY.scale">linear</option>
+
+        <option name="charting.axisY2.enabled">0</option>
+
+        <option name="charting.axisY2.scale">inherit</option>
+
+        <option name="charting.axisTitleX.text">Time</option>
+
+        <option name="charting.axisTitleY.text">Memory Usage %</option>
+
+        <option name="charting.chart">line</option>
+
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+
+        <option name="charting.chart.bubbleSizeBy">area</option>
+
+        <option name="charting.chart.nullValueMode">connect</option>
+
+        <option name="charting.chart.showDataLabels">minmax</option>
+
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+
+        <option name="charting.chart.stackMode">default</option>
+
+        <option name="charting.chart.style">shiny</option>
+
+        <option name="charting.drilldown">all</option>
+
+        <option name="charting.layout.splitSeries">0</option>
+
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+
+        <option name="charting.legend.placement">right</option>
+
+      </chart>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <table>
+
+        <title>Current Host-Wide Memory</title>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="vmstat" | stats max("total memory") AS "Total Memory (MB)" max("used memory") AS "Used Memory (MB)" values("free memory") AS "Free Memory (MB)" values("active memory") AS "Active Memory (MB)" values("inactive memory") AS "Inactive Memory (MB)" values("total swap") as "Total Swap (MB)" values("used swap") as "Used Swap (MB)" values("free swap") as "Free Swap (MB)" values("swap cache") as "Cached Swap (MB)"</query>
+
+          <earliest>-10m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="wrap">true</option>
+
+        <option name="rowNumbers">false</option>
+
+        <option name="dataOverlayMode">none</option>
+
+        <option name="drilldown">cell</option>
+
+        <option name="count">10</option>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <chart>
+
+        <title>Host-Wide Memory Usage (%) in past 5 days</title>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="vmstat"| rename "total memory" as totalMemory, "used memory" as usedMemory, "free memory" as freeMemory| eval usedMemPct=100*(usedMemory/totalMemory) | timechart span=10m max(usedMemPct) as mem</query>
+
+          <earliest>-5d</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+
+        <option name="charting.axisTitleX.visibility">visible</option>
+
+        <option name="charting.axisTitleY.visibility">visible</option>
+
+        <option name="charting.axisTitleY2.visibility">visible</option>
+
+        <option name="charting.axisX.scale">linear</option>
+
+        <option name="charting.axisY.scale">linear</option>
+
+        <option name="charting.axisY2.enabled">0</option>
+
+        <option name="charting.axisY2.scale">inherit</option>
+
+        <option name="charting.axisTitleX.text">Time</option>
+
+        <option name="charting.axisTitleY.text">Memory Usage %</option>
+
+        <option name="charting.chart">line</option>
+
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+
+        <option name="charting.chart.bubbleSizeBy">area</option>
+
+        <option name="charting.chart.nullValueMode">connect</option>
+
+        <option name="charting.chart.showDataLabels">minmax</option>
+
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+
+        <option name="charting.chart.stackMode">default</option>
+
+        <option name="charting.chart.style">shiny</option>
+
+        <option name="charting.drilldown">all</option>
+
+        <option name="charting.layout.splitSeries">0</option>
+
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+
+        <option name="charting.legend.placement">right</option>
+
+      </chart>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <chart>
+
+        <title>Per application CPU usage (%) in past 5 days</title>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="appstat"| bin _time span=10min | stats sum(CPU%) as cpu by Application, _time | timechart span=10m max(cpu) by Application</query>
+
+          <earliest>-5d</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+
+        <option name="charting.axisTitleX.visibility">visible</option>
+
+        <option name="charting.axisTitleY.visibility">visible</option>
+
+        <option name="charting.axisTitleY2.visibility">visible</option>
+
+        <option name="charting.axisX.scale">linear</option>
+
+        <option name="charting.axisY.scale">linear</option>
+
+        <option name="charting.axisY2.enabled">0</option>
+
+        <option name="charting.axisY2.scale">inherit</option>
+
+        <option name="charting.axisTitleX.text">Time</option>
+
+        <option name="charting.axisTitleY.text">CPU Usage %</option>
+
+        <option name="charting.chart">line</option>
+
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+
+        <option name="charting.chart.bubbleSizeBy">area</option>
+
+        <option name="charting.chart.nullValueMode">connect</option>
+
+        <option name="charting.chart.showDataLabels">minmax</option>
+
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+
+        <option name="charting.chart.stackMode">default</option>
+
+        <option name="charting.chart.style">shiny</option>
+
+        <option name="charting.drilldown">all</option>
+
+        <option name="charting.layout.splitSeries">0</option>
+
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+
+        <option name="charting.legend.placement">right</option>
+
+      </chart>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <table>
+
+        <title>Key disk volumes</title>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="diskstat" | stats values("Total 1K-blocks") AS "Total Volume (KB)" values(Use%) AS "% Used" values(Available) as "Available Volume (KB)" values(Filesystem) as "File System" by "Mounted on"</query>
+
+          <earliest>rt-10m</earliest>
+
+          <latest>rtnow</latest>
+
+        </search>
+
+        <option name="wrap">true</option>
+
+        <option name="rowNumbers">false</option>
+
+        <option name="dataOverlayMode">none</option>
+
+        <option name="drilldown">cell</option>
+
+        <option name="count">10</option>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <chart>
+
+        <title>Disk usages (%) in past 5 days</title>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="diskstat"| rename "Mounted on" as Mounted, "Total 1K-blocks" as total_disk | eval percent_used=100*(Used/total_disk)|timechart span=10m max(percent_used) by Mounted</query>
+
+          <earliest>-5d</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+
+        <option name="charting.axisTitleX.visibility">visible</option>
+
+        <option name="charting.axisTitleY.visibility">visible</option>
+
+        <option name="charting.axisTitleY2.visibility">visible</option>
+
+        <option name="charting.axisX.scale">linear</option>
+
+        <option name="charting.axisY.scale">linear</option>
+
+        <option name="charting.axisY2.enabled">0</option>
+
+        <option name="charting.axisY2.scale">inherit</option>
+
+        <option name="charting.chart">line</option>
+
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+
+        <option name="charting.chart.bubbleSizeBy">area</option>
+
+        <option name="charting.chart.nullValueMode">connect</option>
+
+        <option name="charting.chart.showDataLabels">none</option>
+
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+
+        <option name="charting.chart.stackMode">default</option>
+
+        <option name="charting.chart.style">shiny</option>
+
+        <option name="charting.drilldown">all</option>
+
+        <option name="charting.layout.splitSeries">0</option>
+
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+
+        <option name="charting.legend.placement">right</option>
+
+        <option name="charting.axisTitleX.text">Time</option>
+
+        <option name="charting.axisTitleY.text">Disk Usage %</option>
+
+        <param name="popup">True</param>
+
+      </chart>
+
+    </panel>
+
+  </row>
+
+</form>
+
+
+5.3 RE System Overview
+
+<dashboard script="table_cell_highlighting.js" stylesheet="table_cell_highlighting.css" refresh="600">
+
+  <label>RE System Overview</label>
+
+  <row>
+
+    <panel>
+
+      <table id="highlight">
+
+        <title>RE Servers</title>
+
+        <search>
+
+          <query>index=resystem sourcetype="vmstat" | append [search index=resystem sourcetype="appstat"] | rename "total memory" as totalMemory, "used memory" as usedMemory, "free memory" as freeMemory, "total swap" as totalSwap, "used swap" as usedSwap, "free swap" as freeSwap, "swap cache" as swapCache | eval usedMemPct=100*(usedMemory/totalMemory), time=strftime(_time, "%m/%d/%Y %I:%M:%S %p") | stats values(Application) as "Running Applications" latest(totalMemory) AS "Total Memory (MB)" latest(usedMemPct) AS "Used Memory (%)" latest(freeMemory) AS "Free Memory (MB)" latest(totalSwap) as "Total Swap (MB)" latest(usedSwap) as "Used Swap (MB)" latest(freeSwap) as "Free Swap" latest(swapCache) as "Cached Swap (MB)" latest(time) as "Time" by host</query>
+
+          <earliest>-60m@m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <drilldown target="Server_View_Window">
+
+          <link>/app/search/server_view?form.host=$row.host$</link>
+
+        </drilldown>
+
+        <option name="wrap">true</option>
+
+        <option name="rowNumbers">false</option>
+
+        <option name="dataOverlayMode">none</option>
+
+        <option name="drilldown">cell</option>
+
+        <option name="count">20</option>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <chart>
+
+        <title>Application Performance Overview</title>
+
+        <search>
+
+          <query>index=resystem sourcetype="perfstat" | chart latest(RespTime) over Service</query>
+
+          <earliest>-60m@m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+
+        <option name="charting.axisTitleX.visibility">visible</option>
+
+        <option name="charting.axisTitleY.text">Response Time / ms</option>
+
+        <option name="charting.axisTitleY.visibility">visible</option>
+
+        <option name="charting.axisTitleY2.visibility">visible</option>
+
+        <option name="charting.axisX.scale">linear</option>
+
+        <option name="charting.axisY.scale">linear</option>
+
+        <option name="charting.axisY2.enabled">0</option>
+
+        <option name="charting.axisY2.scale">inherit</option>
+
+        <option name="charting.chart">bar</option>
+
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+
+        <option name="charting.chart.bubbleSizeBy">area</option>
+
+        <option name="charting.chart.nullValueMode">gaps</option>
+
+        <option name="charting.chart.showDataLabels">none</option>
+
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+
+        <option name="charting.chart.stackMode">default</option>
+
+        <option name="charting.chart.style">shiny</option>
+
+        <option name="charting.drilldown">all</option>
+
+        <option name="charting.layout.splitSeries">0</option>
+
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+
+        <option name="charting.legend.placement">none</option>
+
+      </chart>
+
+    </panel>
+
+    <panel>
+
+      <table>
+
+        <title>Unavailable Services</title>
+
+        <search>
+
+          <query>index=resystem sourcetype="appstat" (State="T" OR State="Z" OR State="X") | dedup Application| eval time=strftime(_time, "%m/%d/%Y %I:%M:%S %p"), Notes="State notes: X=dead, T=stopped, Z=zombie" | stats values(State) AS State values(time) as Time values(Notes) as Comments by host, Application</query>
+
+          <earliest>-10m@m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <drilldown target="Server_View_Window">
+
+          <link>/app/search/server_view?form.host=$row.host$</link>
+
+        </drilldown>
+
+        <option name="wrap">true</option>
+
+        <option name="rowNumbers">false</option>
+
+        <option name="dataOverlayMode">none</option>
+
+        <option name="drilldown">cell</option>
+
+        <option name="count">10</option>
+
+      </table>
+
+    </panel>
+
+    <panel>
+
+      <table>
+
+        <title>Alerts</title>
+
+        <search>
+
+          <query>index=_audit action=alert_fired ss_app=search | eval Time=strftime(_time, "%m/%d/%Y %I:%M:%S %p") | stats Values(Time) AS Time, Values(ss_name) AS Alert</query>
+
+          <earliest>-30d</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <table>
+
+        <title>Highly Used Disk Volumes</title>
+
+        <search>
+
+          <query>index=resystem sourcetype="diskstat" | rename "Total 1K-blocks" as total_disk | eval percent_used=100*(Used/total_disk), time=strftime(_time, "%m/%d/%Y %I:%M:%S %p") | search percent_used &gt; 60.0 | stats latest("Use%") AS "Percent Used" latest(total_disk) AS "Total Volume (KB)" latest(Available) as "Available Volume (KB)" latest(Filesystem) as "File System" latest(time) as "Time" by host, "Mounted on"</query>
+
+          <earliest>-60m@m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <drilldown target="New Window">
+
+          <link>/app/search/server_view?form.host=$row.host$</link>
+
+        </drilldown>
+
+        <option name="wrap">true</option>
+
+        <option name="rowNumbers">false</option>
+
+        <option name="dataOverlayMode">none</option>
+
+        <option name="drilldown">cell</option>
+
+        <option name="count">10</option>
+
+      </table>
+
+    </panel>
+
+  </row>
+
+</dashboard>
+
+ 
+5.4 Server View
+
+<form refresh="600">
+
+  <label>Server View</label>
+
+  <description></description>
+
+  <!-- <fieldset autoRun="true" submitButton="false">
+
+    <input type="text" token="host" searchWhenChanged="true"></input>
+
+  </fieldset> -->
+
+  <fieldset autoRun="true" submitButton="false">
+
+    <input type="dropdown" token="host" searchWhenChanged="true">
+
+      <label>Select Host</label>
+
+      <search>
+
+        <query>index=resystem sourcetype="appstat"
+
+         | stats count by host</query>
+
+        <earliest>-15m</earliest>
+
+        <latest>now</latest>
+
+      </search>
+
+      <fieldForLabel>host</fieldForLabel>
+
+      <fieldForValue>host</fieldForValue>
+
+      <showClearButton>false</showClearButton>
+
+      <selectFirstChoice>true</selectFirstChoice>
+
+    </input>
+
+    <input type="time" token="field1" searchWhenChanged="true">
+
+      <label></label>
+
+      <default>
+
+        <earliest>-7d@h</earliest>
+
+        <latest>now</latest>
+
+      </default>
+
+    </input>
+
+  </fieldset>
+
+  <row>
+
+    <panel>
+
+      <title>Host Name</title>
+
+      <single>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="appstat"| head 1 | stats values(host)</query>
+
+          <earliest>-60m@m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="colorBy">value</option>
+
+        <option name="colorMode">none</option>
+
+        <option name="numberPrecision">0</option>
+
+        <option name="showSparkline">1</option>
+
+        <option name="showTrendIndicator">1</option>
+
+        <option name="trendColorInterpretation">standard</option>
+
+        <option name="trendDisplayMode">absolute</option>
+
+        <option name="useColors">0</option>
+
+        <option name="useThousandSeparators">1</option>
+
+      </single>
+
+    </panel>
+
+  </row>
+
+  <row>
+
+    <panel>
+
+      <chart>
+
+        <title>Current Host-Wide Memory Usage</title>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="vmstat" | chart latest("used memory") AS "Used", latest("free memory") AS "Free", latest("inactive memory") AS "Inactive", latest("total memory") AS "Total" | fields "Memory", Total, Free, Inactive, Used</query>
+
+          <earliest>-15m</earliest>
+
+          <latest>now</latest>
+
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+
+        <option name="charting.axisTitleX.text">Memory (MB)</option>
+
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+
+        <option name="charting.axisTitleY.text">Memory (MB)</option>
+
+        <option name="charting.axisTitleY.visibility">visible</option>
+
+        <option name="charting.axisTitleY2.visibility">visible</option>
+
+        <option name="charting.axisX.scale">linear</option>
+
+        <option name="charting.axisY.scale">linear</option>
+
+        <option name="charting.axisY2.enabled">0</option>
+
+        <option name="charting.axisY2.scale">inherit</option>
+
+        <option name="charting.chart">bar</option>
+
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+
+        <option name="charting.chart.bubbleSizeBy">area</option>
+
+        <option name="charting.chart.nullValueMode">gaps</option>
+
+        <option name="charting.chart.showDataLabels">none</option>
+
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+
+        <option name="charting.chart.stackMode">default</option>
+
+        <option name="charting.chart.style">shiny</option>
+
+        <option name="charting.drilldown">all</option>
+
+        <option name="charting.layout.splitSeries">0</option>
+
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+
+        <option name="charting.legend.placement">top</option>
+
+      </chart>
+
+    </panel>
+
+    <panel>
+
+      <chart>
+
+        <title>Current Host-Wide Swap Usage</title>
+
+        <search>
+
+          <query>index=resystem host=$host$ sourcetype="vmstat" | chart latest("total swap") as "Total", latest("used swap") as "Used", latest("free swap") as "Free" | fields "Memory", Total, Used, Free</query>
+
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+
+        <option name="charting.axisTitleY.text">Swap (MB)</option>
+
+        <option name="charting.axisTitleY.visibility">visible</option>
+
+        <option name="charting.axisTitleY2.visibility">visible</option>
+
+        <option name="charting.axisX.scale">linear</option>
+
+        <option name="charting.axisY.scale">linear</option>
+
+        <option name="charting.axisY2.enabled">0</option>
+
+        <option name="charting.axisY2.scale">inherit</option>
+
+        <option name="charting.chart">bar</option>
+
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+
+        <option name="charting.chart.bubbleSizeBy">area</option>
+
+        <option name="charting.chart.nullValueMode">gaps</option>
+
+        <option name="charting.chart.showDataLabels">none</option>
+
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+
+        <option name="charting.chart.stackMode">default</option>
+
+        <option name="charting.chart.style">shiny</option>
+
+        <option name="charting.drilldown">all</option>
+
+        <option name="charting.layout.splitSeries">0</option>
+
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+
+        <option name="charting.legend.placement">top</option>
+
+      </chart>
+
+    </panel>
+
+  </row>
+
+  <row>
+    <panel>
+      <chart>
+        <title>Historical Host-Wide Memory Usage</title>
+
+        <search>
+          <query>index=resystem host=$host$ sourcetype="vmstat"| rename "total memory" as totalMemory, "used memory" as usedMemory, "inactive memory" as inactiveMemory, "total swap" as totalSwap, "used swap" as usedSwap | eval usedMemPct=100*(usedMemory/totalMemory), inactiveMemPct=100*(inactiveMemory/totalMemory), usedSwapPct=100*(usedSwap/totalSwap) | timechart span=30m latest(usedMemPct) as used, latest(inactiveMemPct) as inactive, latest(usedSwapPct) as swap</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Memory Usage %</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.showDataLabels">minmax</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+        <title>Key disk volumes</title>
+
+        <search>
+          <query>index=resystem host=$host$ sourcetype="diskstat" | stats latest("Total 1K-blocks") AS "Total Volume (KB)" latest(Use%) AS "% Used" latest(Available) as "Available Volume (KB)" latest(Filesystem) as "File System" by "Mounted on"</query>
+          <earliest>-15m@m</earliest>
+          <latest>now</latest>
+        </search>
+
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+
+    <panel>
+      <chart>
+        <title>Current disk usages</title>
+
+        <search>
+          <query>index=resystem host=$host$ sourcetype="diskstat" | rename "Total 1K-blocks" AS "Total" | eval Volume=Total/1024/1024, Available = Available /1024/1024, Used = Used/1024/1024 | chart latest(Volume) AS "Total Volume", latest(Used) AS "Used Volume", latest(Available) AS "Available Volume" by "Mounted on"</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="charting.axisTitleY.text">GB</option>
+      </chart>
+
+    </panel>
+
+  </row>
+
+  <row>
+    <panel>
+      <chart>
+        <title>Historical disk usages</title>
+
+        <search>
+          <query>index=resystem host=$host$ sourcetype="diskstat"| bin _time span=10min | rename "Mounted on" as Mounted, "Total 1K-blocks" as total_disk | eval used%=ceil(100*Used/total_disk) | timechart span=30m latest(used%) by Mounted</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">top</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Disk Usage %</option>
+        <param name="popup">True</param>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <table>
+        <title>Applications</title>
+        <search>
+          <query>index=resystem host=$host$ sourcetype="appstat" | stats latest(Application) AS Application latest(State) AS State latest(MEM%) AS Mem% latest(CPU%) AS CPU% latest(Start) AS Start latest(Time) AS "Cumulative CPU Time" latest(RSS) AS "Resident Memory Size (KB)" latest(VSZ) AS "Virtual Memory Size (KB)" latest(Command) AS Command by PID</query>
+          <earliest>-15m@m</earliest>
+          <latest>now</latest>
+        </search>
+        <drilldown target="_blank">
+          <link>/app/search/new_drilldown?form.host=$host$&amp;form.app=$row.Application$</link>
+        </drilldown>
+        <option name="wrap">true</option>
+        <option name="drilldown">row</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+
+  </row>
+
+  <row>
+    <panel>
+      <chart>
+        <title>Application response time</title>
+        <search>
+          <query>index=resystem sourcetype="perfstat" | rename "Service" as "Application"| join "Application" [search index=resystem sourcetype="appstat" host=$host$] | timechart span=30m latest(RespTime) by Application</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Response Time (ms)</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.showDataLabels">minmax</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+  </row>
+
+ 
+
+  <row>
+    <panel>
+      <chart>
+        <title>Per application CPU usage (%) in past 5 days</title>
+
+        <search>
+          <query>index=resystem host=$host$ sourcetype="appstat"| bin _time span=10min | stats sum(CPU%) as cpu by Application, _time | timechart span=10m max(cpu) by Application</query>
+          <earliest>-5d</earliest>
+          <latest>now</latest>
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">CPU Usage %</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.showDataLabels">minmax</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+  </row>
+
+  <row>
+    <panel>
+      <chart>
+        <title>Per application memory usages (%) in past 5 days</title>
+
+        <search>
+          <query>index=resystem host=$host$ sourcetype="appstat" | bin _time span=10min | stats sum(MEM%) as mem by Application, _time | timechart span=10m max(mem) by Application</query>
+          <earliest>-5d</earliest>
+          <latest>now</latest>
+        </search>
+
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">Memory Usage %</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.showDataLabels">minmax</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+  </row>
+</form>
+
+ 
+6. Drilldown
+
+6.1 Code
+
+Add drilldown in this way:
+
+<drilldown target="App_Analysis_Window">
+<link>/app/search/application_analysis?form.host=$host$&amp;form.app=$app$</link>
+</drilldown>
+
+Here, target is the window where the drilldown will be opened.
+
+if set <drilldown target="_blank">, it will always open a new window.
+
+Link needs the dashboard-ID to open: application_analysis, and the parameters: host and app.
+
+6.2 Example
+
+6.2.1 Drilldown with 2 parameters
+
+<panel>
+<table>
+<title>Processes</title>
+<search>
+<query>index=resystem host=$host$ sourcetype="appstat" Application=$app$
+| stats latest(State) AS State latest(MEM%) AS Mem% latest(CPU%) AS CPU% latest(Start) AS Start latest(Time) AS "Cumulative CPU Time" latest(RSS) AS "Resident Memory Size (KB)" latest(VSZ) AS "Virtual Memory Size (KB)" latest(Command) AS Command by PID</query>
+<earliest>-60m</earliest>
+<latest>now</latest>
+</search>
+<drilldown target="App_Analysis_Window">
+<link>/app/search/application_analysis?form.host=$host$&amp;form.app=$app$</link>
+</drilldown>
+<option name="wrap">true</option>
+<option name="rowNumbers">false</option>
+<option name="dataOverlayMode">none</option>
+<option name="drilldown">cell</option>
+<option name="count">10</option>
+</table>
+</panel>
+
+6.2.2 Drilldown to a dashboard
+
+6.2.2.1 Initiating panel
+
+   <panel>
+      <table>
+        <title>Alerts</title>
+        <search>
+          <query>index=_audit action=alert_fired ss_app=search | sort - _time | rename ss_name AS Alert | eval Time=strftime(_time, "%m/%d/%Y %H:%M:%S") | table Time Alert</query>
+          <earliest>-7d</earliest>
+          <latest>now</latest>
+        </search>
+        <drilldown target="Alert_Message">
+          <link>/app/search/alert_message?form.alert_name=$row.Alert$&amp;form.alert_time=$row.Time$</link>
+        </drilldown>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+   </panel>
+
+6.2.2.2 Target dashboard
+
+<form>
+  <label>Alert Message</label>
+
+  <fieldset submitButton="false">
+    <input type="text" token="alert_name">
+      <label>Alert_Name</label>
+      <selectFirstChoice>true</selectFirstChoice>
+      <fieldForLabel>alert_name</fieldForLabel>
+      <fieldForValue>alert_name</fieldForValue>
+      <showClearButton>false</showClearButton>
+      <selectFirstChoice>true</selectFirstChoice>
+    </input>
+
+    <input type="text" token="alert_time">
+      <label>Alert_Time</label>
+      <selectFirstChoice>true</selectFirstChoice>
+      <fieldForLabel>alert_time</fieldForLabel>
+      <fieldForValue>alert_time</fieldForValue>
+      <showClearButton>false</showClearButton>
+      <selectFirstChoice>true</selectFirstChoice>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <table>
+        <title>Alert</title>
+        <search>
+          <query>index="artifactory" | head 1 | eval msg="Alert for Artifactory service: the npm request received response code 400 (Bad Request)", Time=$alert_time|s$ | table Time msg </query>
+          <earliest>1457928000</earliest>
+          <latest>now</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+
+</form>
+
+6.2.3 Disable Drilldown
+
+Go to your dashboard and edit panels in the top right.
+
+Then for your specific panel choose 'Edit Visualization'. You'll see an option for drill down and you can change in to 'Off'.
+
+
+7. Color Setting
+
+HTML color value definitions: http://www.w3schools.com/colors/colors_picker.asp
+
+    <panel>
+      <title>24-hour total number of development continued-integration builds by platform</title>
+      <chart>
+          <search>
+              <query>index="build_info" sourcetype=jenkins-ci | stats count(eval(result="SUCCESS" OR result="UNSTABLE")) as Successful, count(eval(result="FAILURE")) as Failed by platform</query>
+              <earliest>-24h@h</earliest>
+              <latest>now</latest>
+          </search>
+          <option name="charting.fieldColors">{"Successful": 0x33cc33, "Failed":0xff0000}</option>
+      </chart>
+    </panel>
+
+
+8. Overlay
+
+    <form>
+     <label>Chart Overlay</label>
+     <description>Chart overlays help give your data context</description>
+     <fieldset autoRun="true" submitButton="false">
+     <input type="time" token="time" searchWhenChanged="true">
+     <label/>
+     <default>
+     <earliestTime>-60m@m</earliestTime>
+     <latestTime>now</latestTime>
+     </default>
+     </input>
+     </fieldset>
+     <row>
+     <panel>
+     <chart>
+     <title>Chart Overlay w/ Single Axis</title>
+     <searchString>index=_internal | timechart count | eventstats avg(count) as average | eval average=round(average,0)</searchString>
+     <earliestTime>$time.earliest$</earliestTime>
+     <latestTime>$time.latest$</latestTime>
+     <option name="charting.chart">column</option>
+     <option name="charting.legend.placement">bottom</option>
+     <option name="charting.legend.masterLegend">null</option>
+     <option name="height">250px</option>
+     <option name="charting.chart.overlayFields">average</option>
+     <option name="charting.fieldColors">{"count": 0x639BF1, "average":0xFF5A09}</option>
+     </chart>
+     <html>
+     <p>Chart Overlay Options:</p>
+     <code style="white-space: pre-wrap;"><![CDATA[<option name="charting.chart.overlayFields">average</option>]]></code>
+     </html>
+     </panel>
+     <panel>
+     <chart>
+     <title>Chart Overlay w/ Dual Axis</title>
+     <searchString>index=_internal | timechart count as total count(eval(sourcetype="splunkd")) as "splunkd"</searchString>
+     <earliestTime>$time.earliest$</earliestTime>
+     <latestTime>$time.latest$</latestTime>
+     <option name="charting.axisTitleX.visibility">collapsed</option>
+     <option name="charting.axisTitleY.visibility">collapsed</option>
+     <option name="charting.axisTitleY2.visibility">visible</option>
+     <option name="charting.axisX.scale">linear</option>
+     <option name="charting.axisY.scale">linear</option>
+     <option name="charting.axisY2.enabled">false</option>
+     <option name="charting.axisY2.scale">inherit</option>
+     <option name="charting.chart">column</option>
+     <option name="charting.legend.placement">bottom</option>
+     <option name="charting.legend.masterLegend">null</option>
+     <option name="height">250px</option>
+     <option name="charting.chart.overlayFields">splunkd</option>
+     <option name="charting.axisY2.enabled">true</option>
+     <option name="charting.axisY2.scale">inherit</option>
+     <option name="charting.axisY2.fields">splunkd</option>
+     <option name="charting.fieldColors">{"total": 0x639BF1, "splunkd":0xFF5A09}</option>
+     </chart>
+     <html>
+     <p>Chart Overlay Options:</p>
+     <code style="white-space: pre-wrap;"><![CDATA[<option name="charting.chart.overlayFields">splunkd</option>
+    <option name="charting.axisY2.enabled">true</option>
+    <option name="charting.axisY2.scale">inherit</option>
+    <option name="charting.axisY2.fields">splunkd</option>]]></code>
+     </html>
+     </panel>
+     </row>
+    </form>

@@ -1,0 +1,72 @@
+# created by: Xiaoyuan Li
+
+    HipChat Notification
+        Install App
+         Create HipChat Token
+        Set HipChat Token
+        Add/Modify HipChat Action to Alert
+            To add new HipChat action:
+        Test
+            Example 1
+            Example 2
+
+0. HipChat Notification
+see Universal Nav PRD
+
+1 Install App
+
+From splunk, click Apps > Find More Apps
+Search "hipchat"
+
+Once found the app "HipChat Room Notification Alert", click "install"
+ 
+2 Create HipChat Token
+
+http://docs.splunk.com/Documentation/MINTMgmtConsole/latest/UserGuide/Integratewithdevelopertools
+
+    Log in to HipChat:  https://hipchat.splunk.com/account/api
+    Enter label: re-latitude
+    Create a new admin token, then copy it: 
+
+    tujX7HeeZXHOzXcFH765wN0IWkFergNMgWQPsDwM
+
+3 Set HipChat Token
+
+To edit HipChat: click Settigns > Alert actions
+
+Click HipChat > Setup HipChart Room Notification
+
+Enter Server Base URL: https://hipchat.splunk.com/v2/
+
+Enter the API token created from the HipChat api site. 
+
+4 Add/Modify HipChat Action to Alert
+
+Click apps > Search and Report
+Click Alert tab.
+Under a specific alert, click 'Edit Actions'.
+Add or modify the HipChat action or other actions.
+
+To add new HipChat action:
+Click 'Add new action'.
+Choose HipChat action.
+Enter chat room: Release Engineering Team
+Enter messages.
+Enter 'Notification Style': message
+Enter 'Message Format': Plain Text
+Enter 'Message Color': Red
+Select 'Notify users in the room'
+Click 'Save'
+
+5 Test
+
+Example 1
+index=resystem sourcetype="diskstat" Use%>95
+| rename "Mounted on" as vol "Use%" as use_pct
+| head 1
+| sendalert hipchat param.room="Release Engineering Team" param.message="STILL A TEST: Alert to disk volume shortage on volume $result.vol$ with usage of $result.use_pct$%" param.color=red
+
+Example 2
+| sendalert hipchat param.room="Release Engineering Team" param.message="Alert Test" param.color=red
+
+ 

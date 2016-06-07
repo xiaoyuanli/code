@@ -1,0 +1,234 @@
+# creted by: Xiaoyuan Li
+
+Contents:
+
+    Run from commandline
+    Check bucket size
+    Fields
+        Field Extraction
+            Extract Json Fields
+            Check autokv
+        Field Values
+            Not null
+            Multiple values
+    Indexing Volume
+    Look Up
+    Join
+    Stats
+        Streamstats
+            Create cumulative output
+            Accum
+    String
+        Substring
+    Timestamp Converting
+        Human readable to unix timestamp
+    Transaction
+    Display
+        Single Data
+        Bin Command
+        Plot with 2 Fields
+        Multiple Columns
+        Timechart
+            Limit of displayed fields
+            Daily application reliability (%)
+            Cumulative application reliability
+        Pie Chart
+        Field Colors Based on Value
+    Output Data
+
+1. Run from commandline
+
+Bin/splunkd search --search=’litsearch index=default | stats count by source’
+Bin/splunkd search --search=’litsearch time > 145698 time < 146678 index=default | stats count by source’
+
+2. Check bucket size
+
+Index = default | eval kbt = _kbt | stats count by bkt
+
+3. Fields
+
+3.1 Field Extraction
+
+3.1.1 Extract Json Fields
+index=resystem | spath | table f1 f2
+
+3.1.2 Check autokv
+
+Index = default | eval kv = _kv | fields kv   // if kv = 1, the search is running auto kv.
+
+Index = default | fieldssummary maxvals = 10000
+
+3.2 Field Values
+
+3.2.1 Not null
+index=default field0=*       // this will get only events having field0.
+
+3.2.2 Multiple values
+Example: field1 = value1, value2, value3
+Search events with field1 containing values2:  field1=value2
+Including 2 of the values: field1=value1 OR field1=value2
+Excluding all values:  sourcetype=fig NOT field1="*"
+
+4. Indexing Volume
+
+To derive index data GB/day:
+index=_internal source=*metrics.log | eval GB=kb/(1024*1024) | search group="per_sourcetype_thruput" | timechart span=1d sum(GB) by series limit=20
+
+5. Look Up
+
+index="releases" source="/etc/httpd/logs/access_log" uri="/cgi-bin/splunk_build_fetcher.py*" | lookup dnslookup clientip OUTPUT clienthost | eval clienthost = coalesce(clienthost, clientip)| eval clienthost = replace(clienthost,".sv.splunk.com","") | timechart span=30m count by clienthost | fields - OTHER
+
+6. Join
+
+index=resystem sourcetype="perfstat" | rename "Service" as "Application"| join "Application" [search index=resystem sourcetype="appstat" host=$host$]
+ | timechart span=30m latest(RespTime) by Application
+
+index=devprod sourcetype=commits | stats min(Timestamp) as firstCheckin by Name | eval FirstCommit=strftime(firstCheckin, "%F %T.%3N")
+ | rename Name as Login | join "Login" [search index="prodteams"] | sort firstCheckin | rename DOH as HireDate| table Login FirstCommit HireDate
+
+7. Stats
+
+7.1 Streamstats
+
+7.1.1 Create cumulative output
+
+1) simple example, running the timechart first and using streamstats to create the cumulative total on the timechart output rows.
+
+  * | timechart count| streamstats sum(count) as cumulative
+
+2) similar, but with a field value instead of the count:
+
+  index=_internal source=*metrics.log group=per_sourcetype_thruput | timechart sum(kb) as totalKB |
+
+  streamstats sum(totalKB) as totalCumulativeKB
+
+3) If you want to go the other way, and use streamstats on the raw events, you can do that, but then you have to use the reverse command.
+
+  index=_internal source=*metrics.log group=per_sourcetype_thruput | reverse |
+
+  streamstats sum(kb) as cumulativeKB | timechart max(cumulativeKB)
+
+4) And streamstats also allows a 'by' term, so for example it can keep track of all of these cumulative numbers separately by some field value like 'series':
+
+With the streamstats before the reporting command:
+
+  index=_internal source=*metrics.log group=per_sourcetype_thruput | reverse |
+
+  streamstats sum(kb) as cumulativeKB by series | timechart max(cumulativeKB) by series
+
+and last but not leasat, if you want to use the other way and use streamstats after the reporting command, you have to get a little more hands-on with stats and bin.
+
+  index=_internal source=*metrics.log group=per_sourcetype_thruput | bin _time span=1h |
+
+  streamstats sum(kb) as totalKB by _time series | timechart sum(totalKB) by series
+
+7.1.2 Accum
+
+You could use accum to create the cumulative sum and then do a timechart last() on this sum to get the last value at the breakpoint of each interval and finally arriving at the total sum:
+
+   ... | reverse | accum value as totalvalue | timechart last(value) span=1d
+
+8. String
+
+8.1 Substring
+index=resystem host="*artif*" sourcetype="appstat"| head 1 | eval namestr=split(host, ".") | eval hostname=mvindex(namestr, 0) | stats values(hostname) values(namestr)
+
+9. Timestamp Converting
+
+9.1 Human readable to unix timestamp
+
+index=devprod sourcetype=commits Project=SOLN | stats min(Timestamp) as firstCheckin by Name | eval FirstCommit=strftime(firstCheckin, "%F %T.%3N") | rename Name as Login | join "Login" [search index="prodteams"] | eval dohTime=strptime(DOH,"%m/%d/%Y"), daysDiff=((firstCheckin-dohTime)/3600/24) | eval daysDiff=if(daysDiff<0,0,daysDiff) | eval daysDiff=if(daysDiff>1000,300,daysDiff) | chart values(daysDiff) by Login
+
+10. Transaction
+
+index="build_info" sourcetype="wrangler-build-event" | transaction execution_key startswith="EXC_START" endswith="EXC_END"  | table branch platform duration
+
+index="build_info" sourcetype="wrangler-build-event" | transaction execution_key startswith="EXC_START" endswith="EXC_END" | stats latest(duration) by branch, platform
+
+11. Display
+
+11.1 Single Data
+index=resystem sourcetype="perfstat" Service="Jenkins" | stats latest(RespTime) as resp | eval disp="Jenkins response time: " + resp + " ms" | table disp
+
+11.2 Bin Command
+Example 1:
+Return the average "thruput" of each "host" for each 5 minute time span.
+... | bin _time span=5m | stats avg(thruput) by _time host
+Example 2:
+Bin search results into 10 bins, and return the count of raw events for each bin.
+... | bin size bins=10 | stats count(_raw) by size
+Example 3:
+Create bins with an end value larger than you need, ensure that all possible values are included.
+... | bin amount end=1000
+
+11.3 Plot with 2 Fields
+
+Plot NPS vs Year:
+source="/home/xli/splunk/data/prod/NPS.csv" host="re-latitude" index="prodteams" sourcetype="csv" | chart values(NPS) as Nps over Year | sort -Year
+
+11.4 Multiple Columns
+
+index=artifactory sourcetype=artif_log "Jenkins-POC" AND "10.66.129.179" | stats count(eval(State_indicator="Successfully")) as Succeeded, count(eval(State_indicator="occurred")) as Failed | fields " ", Succeeded, Failed
+
+11.5 Timechart
+
+index=artifactory sourcetype=artif_log "Jenkins-POC" AND "10.222.25.132" | bin _time span=60min
+ | timechart span=60m count(eval(State_indicator="Successfully")) as Succeeded, count(eval(State_indicator="occurred")) as Failed
+
+index=artifactory sourcetype=artif_req Method=PUT URI="/Jenkins-POC*" AND NOT (URI="*.xml" OR URI="*-manifest")
+ | bin _time span=24h | timechart span=24h sum(Bytes) as b | eval gb=b/1024/1024/1024 | timechart latest(gb)
+
+11.5.1 Limit of displayed fields
+index=build_info action_key=sync txn_tag=ACT_END | timechart span=30m avg(action_runtime) by platform limit=30
+
+Note: limit of "by" fields is 10 by default. It can be set to any number using the modifier: limit=30
+
+11.5.2 Daily application reliability (%)
+
+index="resystem" sourcetype=appstat host!="sv5-prd-artifapp003*" (Application!="TestApp" AND Application!="VirtualBox") | eval Run=case(State="X", 0, State="T", 0, State="Z", 0, true(), 1) |
+
+bin _time span=1d | stats count(Application) as NumProcs, Sum(Run) as Up by Application, _time | eval ratio = Up / NumProcs * 100 | timechart avg(ratio) as ratio by Application
+
+11.5.3 Cumulative application reliability
+
+index="resystem" sourcetype=appstat host!="sv5-prd-artifapp003*" (Application!="TestApp" AND Application!="VirtualBox") |
+
+eval Run=case(State="X", 0, State="T", 0, State="Z", 0, true(), 1) |
+
+bin _time span=1d | stats count(Application) as NumProcs, Sum(Run) as Up by Application, _time | eval ratio = Up / NumProcs * 100, step=1 |
+
+streamstats sum(step) as cumSteps, sum(ratio) as cumRatio by Application | eval avgcum=cumRatio/cumSteps | timechart avg(avgcum) by Application
+
+11.6 Pie Chart
+
+build results for node Fast_LInux_10:
+
+    (index="build_info" OR index=testidx) sourcetype=jenkins-ci node=Fast_Linux_10 | stats count by result
+
+or
+
+    (index="build_info" OR index=testidx) sourcetype=jenkins-ci node=Fast_Linux_10 | chart count by result
+
+11.7 Field Colors Based on Value
+
+<chart>
+    <search>
+        <query>source="/home/xli/splunk/data/prod/NPS.csv" host="re-latitude" index="prodteams" sourcetype="csv" |
+
+                    eval NegNPS=case(NPS&lt;0, NPS, true(), 0), PosNPS=case(NPS&gt;0, NPS, true(), 0) |
+
+                    chart values(PosNPS) AS NPS1 values(NegNPS) AS NPS2 over Year</query>
+    </search>
+    <option name="charting.fieldColors">{"NPS2": 0xff0000, "NPS1": 0x33cc33}</option>
+</chart>
+
+
+12. Output Data
+
+index="resystem" sourcetype=appstat host!="sv5-prd-artifapp003*" (Application!="TestApp" AND Application!="VirtualBox") |
+
+eval Run=case(State="X", 0, State="T", 0, State="Z", 0, true(), 1) |
+
+timechart span=10m min(Run) by Application| fields - _span |
+
+outputcsv re_servers_uptime_new.csv
