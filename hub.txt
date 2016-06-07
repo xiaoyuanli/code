@@ -1,0 +1,313 @@
+Linux:
+
+Set up github on linux:
+xli@re-latitude:~$ pwd
+/home/xli
+xli@re-latitude:~$ ls
+Desktop    Downloads         Pictures  Templates  Videos
+dev        examples.desktop  Public    vagrant    VirtualBox VMs
+Documents  Music             splunk    vbox
+xli@re-latitude:~$ mkdir github
+xli@re-latitude:~$ cd github
+xli@re-latitude:~/github$ ls
+xli@re-latitude:~/github$ sudo apt-get install git
+[sudo] password for xli: 
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following packages were automatically installed and are no longer required:
+  libntdb1 linux-image-3.19.0-25-generic linux-image-3.19.0-26-generic
+  linux-signed-image-3.19.0-26-generic python-ntdb
+Use 'apt-get autoremove' to remove them.
+The following extra packages will be installed:
+  git-man liberror-perl
+Suggested packages:
+  git-daemon-run git-daemon-sysvinit git-doc git-el git-email git-gui gitk
+  gitweb git-arch git-bzr git-cvs git-mediawiki git-svn
+The following NEW packages will be installed:
+  git git-man liberror-perl
+0 upgraded, 3 newly installed, 0 to remove and 9 not upgraded.
+Need to get 3,306 kB of archives.
+After this operation, 21.9 MB of additional disk space will be used.
+Do you want to continue? [Y/n] y
+Get:1 http://us.archive.ubuntu.com/ubuntu/ trusty/main liberror-perl all 0.17-1.1 [21.1 kB]
+Get:2 http://us.archive.ubuntu.com/ubuntu/ trusty-updates/main git-man all 1:1.9.1-1ubuntu0.3 [699 kB]
+Get:3 http://us.archive.ubuntu.com/ubuntu/ trusty-updates/main git amd64 1:1.9.1-1ubuntu0.3 [2,586 kB]
+Fetched 3,306 kB in 1s (2,199 kB/s)
+Selecting previously unselected package liberror-perl.
+(Reading database ... 538556 files and directories currently installed.)
+Preparing to unpack .../liberror-perl_0.17-1.1_all.deb ...
+Unpacking liberror-perl (0.17-1.1) ...
+Selecting previously unselected package git-man.
+Preparing to unpack .../git-man_1%3a1.9.1-1ubuntu0.3_all.deb ...
+Unpacking git-man (1:1.9.1-1ubuntu0.3) ...
+Selecting previously unselected package git.
+Preparing to unpack .../git_1%3a1.9.1-1ubuntu0.3_amd64.deb ...
+Unpacking git (1:1.9.1-1ubuntu0.3) ...
+Processing triggers for man-db (2.6.7.1-1ubuntu1) ...
+Setting up liberror-perl (0.17-1.1) ...
+Setting up git-man (1:1.9.1-1ubuntu0.3) ...
+Setting up git (1:1.9.1-1ubuntu0.3) ...
+xli@re-latitude:~/github$ git config --global user.name "xli"
+xli@re-latitude:~/github$ git config --global user.email "xiaoyuanli66@yahoo.com"
+xli@re-latitude:~/github$ git init code
+Initialized empty Git repository in /home/xli/github/code/.git/
+xli@re-latitude:~/github$
+
+@re-latitude:~/github/code/dev/py/splagent/linux$ ls
+appstat-linux.py  diskstat-linux.py  perfstat.py  sysagent-linux.py  vmstat-ubuntu.py
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ git add .
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ git -m "Created agent files."
+Unknown option: -m
+usage: git [--version] [--help] [-C <path>] [-c name=value]
+           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]
+           [-p|--paginate|--no-pager] [--no-replace-objects] [--bare]
+           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]
+           <command> [<args>]
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ git commit -m "Created agent files."
+[master (root-commit) 04662a2] Created agent files.
+ 5 files changed, 1163 insertions(+)
+ create mode 100755 dev/py/splagent/linux/appstat-linux.py
+ create mode 100755 dev/py/splagent/linux/diskstat-linux.py
+ create mode 100755 dev/py/splagent/linux/perfstat.py
+ create mode 100755 dev/py/splagent/linux/sysagent-linux.py
+ create mode 100755 dev/py/splagent/linux/vmstat-ubuntu.py
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ git remote add origin https://github.com/xiaoyuanli/code.git
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ git push origin master
+Username for 'https://github.com': xli
+Password for 'https://xli@github.com': 
+remote: Invalid username or password.
+fatal: Authentication failed for 'https://github.com/xiaoyuanli/code.git/'
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ git push origin master
+Username for 'https://github.com': xiaoyuanli
+Password for 'https://xiaoyuanli@github.com': 
+To https://github.com/xiaoyuanli/code.git
+ ! [rejected]        master -> master (fetch first)
+error: failed to push some refs to 'https://github.com/xiaoyuanli/code.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ git pull ...
+fatal: '...' does not appear to be a git repository
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ git pull
+warning: no common commits
+remote: Counting objects: 3, done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (3/3), done.
+From https://github.com/xiaoyuanli/code
+ * [new branch]      master     -> origin/master
+There is no tracking information for the current branch.
+Please specify which branch you want to merge with.
+See git-pull(1) for details
+
+    git pull <remote> <branch>
+
+If you wish to set tracking information for this branch you can do so with:
+
+    git branch --set-upstream-to=origin/<branch> master
+
+xli@re-latitude:~/github/code/dev/py/splagent/linux$ cd ../../..
+xli@re-latitude:~/github/code/dev$ cd ..
+xli@re-latitude:~/github/code$ git pull
+There is no tracking information for the current branch.
+Please specify which branch you want to merge with.
+See git-pull(1) for details
+
+    git pull <remote> <branch>
+
+If you wish to set tracking information for this branch you can do so with:
+
+    git branch --set-upstream-to=origin/<branch> master
+
+xli@re-latitude:~/github/code$ git push origin master
+Username for 'https://github.com': xiaoyuanli
+Password for 'https://xiaoyuanli@github.com': 
+To https://github.com/xiaoyuanli/code.git
+ ! [rejected]        master -> master (non-fast-forward)
+error: failed to push some refs to 'https://github.com/xiaoyuanli/code.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. Integrate the remote changes (e.g.
+hint: 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+xli@re-latitude:~/github/code$ git pull ...
+fatal: '...' does not appear to be a git repository
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+xli@re-latitude:~/github/code$ git pull origin
+You asked to pull from the remote 'origin', but did not specify
+a branch. Because this is not the default configured remote
+for your current branch, you must specify a branch on the command line.
+xli@re-latitude:~/github/code$ git pull origin master
+From https://github.com/xiaoyuanli/code
+ * branch            master     -> FETCH_HEAD
+Merge made by the 'recursive' strategy.
+ README.md | 2 ++
+ 1 file changed, 2 insertions(+)
+ create mode 100644 README.md
+xli@re-latitude:~/github/code$ ls
+dev  README.md
+xli@re-latitude:~/github/code$ git status
+On branch master
+nothing to commit, working directory clean
+xli@re-latitude:~/github/code$ ls
+dev  README.md
+xli@re-latitude:~/github/code$ ls dev
+js  py
+xli@re-latitude:~/github/code$ ls
+dev  README.md
+xli@re-latitude:~/github/code$ cd dev/js
+xli@re-latitude:~/github/code/dev/js$ ls
+xli@re-latitude:~/github/code/dev/js$ vi readme.txt
+xli@re-latitude:~/github/code/dev/js$ cp ~/splunk/splunk630/etc/apps/search/appserver/static/pie* .
+xli@re-latitude:~/github/code/dev/js$ ls
+piechart.css  piechart.js  pie.js  readme.txt
+xli@re-latitude:~/github/code/dev/js$ cd ..
+xli@re-latitude:~/github/code/dev$ pwd
+/home/xli/github/code/dev
+xli@re-latitude:~/github/code/dev$ cd ..
+xli@re-latitude:~/github/code$ git add .
+xli@re-latitude:~/github/code$ git commit -m "js code."
+[master 3a2aefd] js code.
+ 4 files changed, 441 insertions(+)
+ create mode 100644 dev/js/pie.js
+ create mode 100644 dev/js/piechart.css
+ create mode 100644 dev/js/piechart.js
+ create mode 100644 dev/js/readme.txt
+xli@re-latitude:~/github/code$ git remote add origin https://github.com/xiaoyuanli/code.git
+fatal: remote origin already exists.
+xli@re-latitude:~/github/code$ git push origin
+warning: push.default is unset; its implicit value is changing in
+Git 2.0 from 'matching' to 'simple'. To squelch this message
+and maintain the current behavior after the default changes, use:
+
+  git config --global push.default matching
+
+To squelch this message and adopt the new behavior now, use:
+
+  git config --global push.default simple
+
+When push.default is set to 'matching', git will push local branches
+to the remote branches that already exist with the same name.
+
+In Git 2.0, Git will default to the more conservative 'simple'
+behavior, which only pushes the current branch to the corresponding
+remote branch that 'git pull' uses to update the current branch.
+
+See 'git help config' and search for 'push.default' for further information.
+(the 'simple' mode was introduced in Git 1.7.11. Use the similar mode
+'current' instead of 'simple' if you sometimes use older versions of Git)
+
+Username for 'https://github.com': xiaoyuanli
+Password for 'https://xiaoyuanli@github.com': 
+Counting objects: 22, done.
+Delta compression using up to 24 threads.
+Compressing objects: 100% (16/16), done.
+Writing objects: 100% (21/21), 11.38 KiB | 0 bytes/s, done.
+Total 21 (delta 3), reused 0 (delta 0)
+To https://github.com/xiaoyuanli/code.git
+   4697c1e..3a2aefd  master -> master
+xli@re-latitude:~/github/code$ git status
+On branch master
+nothing to commit, working directory clean
+xli@re-latitude:~/github/code$
+
+xli@re-latitude:~/github/code/search$ ls
+alert.txt  dashboard.txt  FieldExtraction.txt  RestPost.txt  spl.txt
+xli@re-latitude:~/github/code/search$ git status
+On branch master
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+  ./
+
+nothing added to commit but untracked files present (use "git add" to track)
+xli@re-latitude:~/github/code/search$ pwd
+/home/xli/github/code/search
+xli@re-latitude:~/github/code/search$ cd ..
+xli@re-latitude:~/github/code$ git status
+On branch master
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+  search/
+
+nothing added to commit but untracked files present (use "git add" to track)
+xli@re-latitude:~/github/code$ git add .
+xli@re-latitude:~/github/code$ git commit -m "Spl search examples."
+[master 5155c62] Spl search examples.
+ 5 files changed, 2307 insertions(+)
+ create mode 100644 search/FieldExtraction.txt
+ create mode 100644 search/RestPost.txt
+ create mode 100644 search/alert.txt
+ create mode 100644 search/dashboard.txt
+ create mode 100644 search/spl.txt
+xli@re-latitude:~/github/code$ git push origin
+warning: push.default is unset; its implicit value is changing in
+Git 2.0 from 'matching' to 'simple'. To squelch this message
+and maintain the current behavior after the default changes, use:
+
+  git config --global push.default matching
+
+To squelch this message and adopt the new behavior now, use:
+
+  git config --global push.default simple
+
+When push.default is set to 'matching', git will push local branches
+to the remote branches that already exist with the same name.
+
+In Git 2.0, Git will default to the more conservative 'simple'
+behavior, which only pushes the current branch to the corresponding
+remote branch that 'git pull' uses to update the current branch.
+
+See 'git help config' and search for 'push.default' for further information.
+(the 'simple' mode was introduced in Git 1.7.11. Use the similar mode
+'current' instead of 'simple' if you sometimes use older versions of Git)
+
+Username for 'https://github.com': xiaoyuanli
+Password for 'https://xiaoyuanli@github.com': 
+Counting objects: 9, done.
+Delta compression using up to 24 threads.
+Compressing objects: 100% (8/8), done.
+Writing objects: 100% (8/8), 13.23 KiB | 0 bytes/s, done.
+Total 8 (delta 0), reused 0 (delta 0)
+To https://github.com/xiaoyuanli/code.git
+   eb30844..5155c62  master -> master
+xli@re-latitude:~/github/code$
+
+===================================================
+==================================================
+
+Clone github repository on Mac:
+
+xli--mbp15r:git xli$ mkdir hub
+xli--mbp15r:git xli$ cd hub
+xli--mbp15r:hub xli$ git help clone
+xli--mbp15r:hub xli$ pwd
+/Users/xli/code/git/hub
+xli--mbp15r:hub xli$ git clone https://github.com/xiaoyuanli/code myopensrc
+Cloning into 'myopensrc'...
+remote: Counting objects: 42, done.
+remote: Compressing objects: 100% (28/28), done.
+remote: Total 42 (delta 8), reused 37 (delta 6), pack-reused 0
+Unpacking objects: 100% (42/42), done.
+Checking connectivity... done.
+xli--mbp15r:hub xli$ ls
+myopensrc
+xli--mbp15r:hub xli$ ls myopensrc/
+README.md  dev    search
+xli--mbp15r:hub xli$ cd myopensrc/
+xli--mbp15r:myopensrc xli$ git status
+On branch master
+Your branch is up-to-date with 'origin/master'.
+nothing to commit, working directory clean
+xli--mbp15r:myopensrc xli$
+
+
