@@ -1,0 +1,128 @@
+                  1. System Monitoring on Linux
+
+1.1. VM Stat
+vmstat -s
+$ vmstat
+procs   -------------memory----------------------     ---swap--   -----io----    -system--        ----cpu----
+r   b        swpd    free      buff        cache           si   so        bi    bo       in    cs          us  sy  id   wa
+0  0        3532  148760  50700  1397880          0    0         1     2         6     6            3   1   97   0
+
+1.1.1 Procs
+The procs data reports the number of processing jobs waiting to run and allows you to determine if there are processes “blocking” your system from running smoothly.
+a) The r column displays the total number of processes waiting for access to the processor.
+b) The b column displays the total number of processes in a “sleep” state.
+These values are often 0.
+
+1.1.2 Memory
+The information displayed in the memory section provides the same data about memory usage as the command free -m.
+a) The swapd or “swapped” column reports how much memory has been swapped out to a swap file or disk.
+b) The free column reports the amount of unallocated memory.
+c) The buff or “buffers” column reports the amount of allocated memory in use.
+d) The cache column reports the amount of allocated memory that could be swapped to disk or unallocated if the resources are needed for another task.
+
+1.1.3 Swap
+The swap section reports the rate that memory is sent to or retrieved from the swap system. By reporting “swapping” separately from total disk activity, vmstat allows you to determine how much disk activity is related to the swap system.
+a) The si column reports the amount of memory that is moved from swap to “real” memory per second.
+b) The so column reports the amount of memory that is moved to swap from “real” memory per second.
+
+1.1.4 I/O
+The io section reports the amount of input and output activity per second in terms of blocks read and blocks written.
+a) The bi column reports the number of blocks received, or “blocks in”, from a disk per second.
+b) The bo column reports the number of blocks sent, or “blocks out”, to a disk per second.
+
+1.1.5 System
+The system section reports data that reflects the number of system operations per second.
+a) The in column reports the number of system interrupts per second, including interrupts from system clock.
+b) The cs column reports the number of context switches that the system makes in order to process all tasks.
+
+1.1.6 CPU
+The cpu section reports on the use of the system’s CPU resources. The columns in this section always add to 100 and reflect “percentage of available time”.
+a) The us column reports the amount of time that the processor spends on userland tasks, or all non-kernel processes.
+b) The sy column reports the amount of time that the processor spends on kernel related tasks.
+c) The id column reports the amount of time that the processor spends idle.
+d) The wa column reports the amount of time that the processor spends waiting for IO operations to complete before being able to continue processing tasks.
+
+1.1.7 Active and Inactive Memory
+a) Check Inactive memory
+To see the memory use
+vmstat -a
+Or use /proc/meminfo
+cat /proc/meminfo
+Active memory is memory that is being used by a particular process.
+Inactive memory is memory that was allocated to a process that is no longer running. 
+b) Clear Inactive Memory
+You need not to clear this Inactive memory When system reboots this memory automatically became vanish.
+Still If you have a large amount of inactive memory ,you can use following command. 
+free && sync && echo 3 > /proc/sys/vm/drop_caches && echo "" && free
+
+1.2 Disk Stat
+df -k
+df -hP
+
+Check directory Size:
+du -sb dirname      // -b in bytes, by default block in 512 bytes.
+
+1.3 App Stat
+ps -aux
+
+1.3.1 USER
+user owning the process 
+
+1.3.2 PID
+process ID of the process 
+
+1.3.3 %CPU
+CPU time used divided by the time the process has been running. 
+
+1.3.4 %MEM
+ratio of the process’s resident set size  to the physical memory on the machine 
+
+1.3.5 VSZ
+virtual memory usage of entire process (in KiB)
+
+1.3.6 RSS
+resident set size, the non-swapped physical memory that a task has used (in KiB)
+
+1.3.7 TTY
+controlling tty (terminal) 
+
+1.3.8 STAT
+multi-character process state
+PROCESS STATE CODES (under header 'STAT' or 'S'):
+R  running or runnable (on run queue)
+D  uninterruptible sleep (usually IO)
+S  interruptible sleep (waiting for an event to complete)
+Z defunct/zombie, terminated but not reaped by its parent
+T  stopped, either by a job control signal or because  it is being traced
+X dead (should never be seen)
+W paging (not valid since 2.6.xx kernel)
+
+For BSD formats and when the stat keyword is used, additional characters may be displayed:
+        <    high-priority (not nice to other users)
+        N    low-priority (nice to other users)
+        L    has pages locked into memory (for real-time and custom IO)
+        s    is a session leader
+        l    is multi-threaded (using CLONE_THREAD, like NPTL pthreads do)
+        +    is in the foreground process group.
+
+1.3.9 START
+starting time or date of the process 
+
+1.3.10 TIME
+cumulative CPU time 
+
+1.3.11. COMMAND
+command with all its arguments
+
+
+                 2. System Monitoring on Windows
+
+2.1 Memory
+cmd> systeminfo | findstr Memory
+
+2.2 Disk Utilization
+cmd> fsutil volume diskfree C:
+
+2.3 Process
+cmd> tasklist -v
+
